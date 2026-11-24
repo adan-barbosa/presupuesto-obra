@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presupuesto de Obra</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fuente Inter para una tipografía limpia y moderna -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        /* Estilos personalizados para los deslizadores (range sliders) */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            background: #e2e8f0;
+            height: 0.5rem;
+            border-radius: 9999px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            margin-top: -6px;
+            background-color: #d97706; /* Amber 600 */
+            height: 1.25rem;
+            width: 1.25rem;
+            border-radius: 9999px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            background-color: #b45309; /* Amber 700 */
+        }
+        input[type="range"]:focus::-webkit-slider-thumb {
+            outline: 3px solid rgba(217, 119, 6, 0.3);
+        }
+
+        /* Estilos para impresión */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background-color: white;
+                padding-bottom: 0 !important;
+            }
+            .sticky-footer {
+                position: static !important;
+                box-shadow: none !important;
+                border-top: 2px solid #0f172a !important;
+                margin-top: 2rem;
+            }
+            .card-shadow {
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800 pb-40 md:pb-32 antialiased">
+
+    <!-- Encabezado Principal -->
+    <header class="bg-slate-900 text-white shadow-lg border-b-4 border-amber-500">
+        <div class="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider mb-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                    <span>Cotizador y Control de Obra</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Presupuesto de Obra</h1>
+                    <!-- Indicador de estado de sincronización en vivo -->
+                    <span id="sync-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 transition-colors">
+                        <span id="sync-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span id="sync-text">Conectando en vivo...</span>
+                    </span>
+                </div>
+            </div>
+            
+            <!-- Botones de Acción Rápida -->
+            <div class="flex flex-wrap items-center gap-2 no-print">
+                <button onclick="shareLiveLink()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-emerald-500 hover:bg-emerald-600 text-slate-950 transition-colors cursor-pointer shadow-sm" title="Copiar enlace colaborativo en tiempo real">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                    </svg>
+                    Compartir enlace en vivo
+                </button>
+                <button onclick="openResetModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer" title="Restaurar cantidades y precios originales de la libreta">
+                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    Restablecer notas
+                </button>
+                <button onclick="openAddModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Agregar concepto
+                </button>
+                <button onclick="copyBudgetSummary()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-amber-500 hover:bg-amber-600 text-slate-950 transition-colors cursor-pointer shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                    </svg>
+                    Copiar resumen
+                </button>
+                <button onclick="window.print()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                    </svg>
+                    Imprimir
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Notificación Toast (Reemplaza alert) -->
+    <div id="toast" class="fixed top-4 right-4 z-50 transform transition-all duration-300 translate-y-[-150%] opacity-0 pointer-events-none">
+        <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-amber-500/40 flex items-center gap-3 text-sm font-medium">
+            <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span id="toast-message">Acción completada</span>
+        </div>
+    </div>
+
+    <!-- Contenedor Principal -->
+    <main class="max-w-6xl mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-8">
+        
+        <!-- Banner de ayuda rápida -->
+        <div class="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-amber-950 no-print">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p>
+                    <strong>Trabajo colaborativo en tiempo real:</strong> Comparte el enlace de esta página para que cualquier cambio en los deslizadores, precios o pagos se sincronice al instante en todos los dispositivos conectados (<span id="room-id-label" class="font-mono font-bold text-amber-800"></span>).
+                </p>
+            </div>
+            <button onclick="openAddModal()" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors cursor-pointer shadow-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                + Agregar concepto
+            </button>
+        </div>
+
+        <!-- Sección 1: Planta Baja -->
+        <section class="space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-slate-200 pb-3">
+                <div class="flex items-center gap-3">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-900 text-amber-400 font-bold text-sm">1</span>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Planta Baja</h2>
+                        <p class="text-xs text-slate-500">Cimentación, estructura, muros, losa y preliminares</p>
+                    </div>
+                </div>
+                <div class="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between sm:justify-end gap-3">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Subtotal Planta Baja:</span>
+                    <span id="subtotal-pb" class="text-lg font-extrabold text-slate-900 tabular-nums">$0.00</span>
+                </div>
+            </div>
+
+            <!-- Lista de conceptos Planta Baja -->
+            <div id="list-pb" class="grid grid-cols-1 gap-3.5"></div>
+        </section>
+
+        <!-- Sección 2: Planta Alta -->
+        <section class="space-y-4 pt-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-slate-200 pb-3">
+                <div class="flex items-center gap-3">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-900 text-amber-400 font-bold text-sm">2</span>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Planta Alta</h2>
+                        <p class="text-xs text-slate-500">Muros, castillos, trabes y colado de losa superior</p>
+                    </div>
+                </div>
+                <div class="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between sm:justify-end gap-3">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Subtotal Planta Alta:</span>
+                    <span id="subtotal-pa" class="text-lg font-extrabold text-slate-900 tabular-nums">$0.00</span>
+                </div>
+            </div>
+
+            <!-- Lista de conceptos Planta Alta -->
+            <div id="list-pa" class="grid grid-cols-1 gap-3.5"></div>
+        </section>
+
+        <!-- Sección 3: Control de Pagos y Abonos -->
+        <section class="space-y-4 pt-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-slate-200 pb-3">
+                <div class="flex items-center gap-3">
+                    <span class="flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-600 text-white font-bold text-sm">3</span>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Control de Pagos y Abonos</h2>
+                        <p class="text-xs text-slate-500">Registra anticipos o abonos para descontarlos automáticamente del Gran Total</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="clearAllPayments()" id="btn-clear-payments" class="hidden no-print text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-2 rounded-xl border border-red-200 transition-colors cursor-pointer">
+                        Limpiar pagos
+                    </button>
+                    <div class="bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-200 shadow-sm flex items-center justify-between sm:justify-end gap-3">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-800">Total Abonado:</span>
+                        <span id="subtotal-paid" class="text-lg font-extrabold text-emerald-700 tabular-nums">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra de Progreso Visual de Pago -->
+            <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-2.5">
+                <div class="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
+                    <div class="font-semibold text-slate-700">
+                        Avance de Liquidación: <span id="payment-percent" class="text-emerald-600 font-extrabold">0.0%</span> pagado
+                    </div>
+                    <div class="text-slate-500 font-medium">
+                        Por cubrir: <span id="payment-remaining-percent" class="text-slate-800 font-bold">100.0%</span>
+                    </div>
+                </div>
+                <div class="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/80 p-0.5">
+                    <div id="payment-progress-bar" class="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Formulario Rápido para Registrar Pago -->
+            <form id="payment-form" onsubmit="handleAddPayment(event)" class="no-print bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end">
+                    <div class="lg:col-span-4">
+                        <label for="pay-desc" class="block text-xs font-semibold text-slate-700 uppercase mb-1">Concepto / Descripción *</label>
+                        <input type="text" id="pay-desc" required placeholder="Ej. Anticipo inicial / Abono cimentación" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    </div>
+                    <div class="lg:col-span-2">
+                        <label for="pay-date" class="block text-xs font-semibold text-slate-700 uppercase mb-1">Fecha *</label>
+                        <input type="date" id="pay-date" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    </div>
+                    <div class="lg:col-span-2">
+                        <label for="pay-note" class="block text-xs font-semibold text-slate-700 uppercase mb-1">Método / Nota</label>
+                        <input type="text" id="pay-note" placeholder="Efectivo / Transferencia" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    </div>
+                    <div class="lg:col-span-2">
+                        <label for="pay-amount" class="block text-xs font-semibold text-slate-700 uppercase mb-1">Monto ($ MXN) *</label>
+                        <div class="flex items-center rounded-xl border border-slate-300 px-2.5 py-2 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-emerald-500 bg-slate-50 focus-within:bg-white">
+                            <span class="text-slate-500 font-semibold text-sm mr-1">$</span>
+                            <input type="number" id="pay-amount" required min="0.01" step="any" placeholder="15000" class="w-full bg-transparent text-sm font-bold text-slate-900 focus:outline-none tabular-nums">
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2">
+                        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition-colors cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            + Registrar pago
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Tabla / Listado Interactivo de Pagos Registrados -->
+            <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
+                <div id="payments-empty" class="p-8 text-center text-slate-400 text-sm">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    Aún no hay pagos o anticipos registrados. Utiliza el formulario superior para agregar el primer abono.
+                </div>
+                <div id="payments-table-wrapper" class="hidden overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                <th class="py-3 px-4">#</th>
+                                <th class="py-3 px-4">Fecha</th>
+                                <th class="py-3 px-4">Concepto / Descripción</th>
+                                <th class="py-3 px-4">Método / Nota</th>
+                                <th class="py-3 px-4 text-right">Monto Pagado</th>
+                                <th class="py-3 px-4 text-center no-print">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payments-list" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Barra Resumen Fija Inferior (Sticky Footer) -->
+    <footer class="sticky-footer fixed bottom-0 inset-x-0 bg-slate-900/95 backdrop-blur-md text-white border-t border-slate-700/80 shadow-2xl z-40">
+        <div class="max-w-6xl mx-auto px-4 py-3 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 items-stretch">
+                <!-- Planta Baja -->
+                <div class="bg-slate-800/80 px-3 py-2 rounded-xl border border-slate-700/70 flex flex-col justify-center">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Planta Baja</span>
+                    <span id="footer-pb" class="text-sm sm:text-base font-extrabold text-white tabular-nums">$0.00</span>
+                </div>
+
+                <!-- Planta Alta -->
+                <div class="bg-slate-800/80 px-3 py-2 rounded-xl border border-slate-700/70 flex flex-col justify-center">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Planta Alta</span>
+                    <span id="footer-pa" class="text-sm sm:text-base font-extrabold text-white tabular-nums">$0.00</span>
+                </div>
+
+                <!-- Gran Total Cotizado -->
+                <div class="bg-slate-800/80 px-3 py-2 rounded-xl border border-slate-700/70 flex flex-col justify-center">
+                    <div class="flex items-center justify-between gap-1">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gran Total</span>
+                        <span id="footer-diff" class="text-[10px] text-slate-400 hidden xl:inline">Base</span>
+                    </div>
+                    <span id="grand-total" class="text-sm sm:text-base font-extrabold text-white tabular-nums">$0.00</span>
+                </div>
+
+                <!-- Total Abonado -->
+                <div class="bg-emerald-950/70 px-3 py-2 rounded-xl border border-emerald-700/50 flex flex-col justify-center">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Total Abonado</span>
+                    <span id="footer-paid" class="text-sm sm:text-base font-extrabold text-emerald-300 tabular-nums">-$0.00</span>
+                </div>
+
+                <!-- Saldo Pendiente por Pagar -->
+                <div id="balance-box" class="col-span-2 sm:col-span-2 lg:col-span-1 flex items-center justify-between lg:flex-col lg:items-end lg:justify-center bg-amber-500/15 px-3.5 py-2 rounded-xl border border-amber-500/40 transition-colors">
+                    <span id="balance-label" class="text-amber-400 text-[10px] font-bold uppercase tracking-wider block">Saldo Pendiente</span>
+                    <span id="balance-due" class="text-lg sm:text-xl font-black text-amber-400 tracking-tight tabular-nums">$0.00</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal: Confirmar Restablecimiento -->
+    <div id="reset-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center gap-3 text-amber-600">
+                <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">Restablecer notas originales</h3>
+            </div>
+            <p class="text-sm text-slate-600">
+                ¿Cómo deseas restaurar las cantidades y precios unitarios base de la libreta?
+            </p>
+            <div class="flex flex-col gap-2 pt-2">
+                <button onclick="executeReset(false)" class="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm transition-colors cursor-pointer">
+                    Restaurar partidas (conservar pagos)
+                </button>
+                <button onclick="executeReset(true)" class="w-full py-2.5 px-4 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-semibold text-sm transition-colors cursor-pointer">
+                    Restaurar todo y borrar pagos
+                </button>
+                <button onclick="closeResetModal()" class="w-full py-2 px-4 rounded-xl text-slate-500 hover:bg-slate-100 font-semibold text-sm transition-colors cursor-pointer">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar Nuevo Concepto -->
+    <div id="add-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 no-print">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-900">Agregar nuevo concepto</h3>
+                <button onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="add-form" onsubmit="handleAddConcept(event)" class="space-y-3.5">
+                <div>
+                    <label for="new-section" class="block text-xs font-semibold text-slate-700 uppercase mb-1">Sección *</label>
+                    <select id="new-section" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <option value="pb">1. Planta Baja</option>
+                        <option value="pa">2. Planta Alta</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="new-name" class="block text-xs font-semibold text-slate-700 uppercase mb-1">Nombre del concepto *</label>
+                    <input type="text" id="new-name" required placeholder="Ej. Aplanado fino en muros" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="new-unit" class="block text-xs font-semibold text-slate-700 uppercase mb-1">Unidad *</label>
+                        <input type="text" id="new-unit" required placeholder="m², ml, pza, lote" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label for="new-price" class="block text-xs font-semibold text-slate-700 uppercase mb-1">Precio Unitario ($) *</label>
+                        <input type="number" id="new-price" required min="0" step="any" placeholder="180" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="new-qty" class="block text-xs font-semibold text-slate-700 uppercase mb-1">Cantidad inicial *</label>
+                        <input type="number" id="new-qty" required min="0" step="any" value="10" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                    <div>
+                        <label for="new-max" class="block text-xs font-semibold text-slate-700 uppercase mb-1">Máximo deslizador</label>
+                        <input type="number" id="new-max" min="1" step="any" value="100" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 cursor-pointer">Agregar partida</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        /**
+         * Datos iniciales exactos extraídos de la libreta.
+         */
+        const INITIAL_ITEMS = [
+            // PLANTA BAJA
+            { id: 'pb-1', section: 'pb', name: 'Trazo y nivelación', unit: 'lote', defaultQty: 1, qty: 1, defaultPrice: 4900, price: 4900, min: 0, max: 5, step: 0.5 },
+            { id: 'pb-2', section: 'pb', name: 'Zapatas', unit: 'pza', defaultQty: 11, qty: 11, defaultPrice: 2600, price: 2600, min: 0, max: 30, step: 1 },
+            { id: 'pb-3', section: 'pb', name: 'Cadena de desplante', unit: 'ml', defaultQty: 57, qty: 57, defaultPrice: 250, price: 250, min: 0, max: 150, step: 1 },
+            { id: 'pb-4', section: 'pb', name: 'Castillos armados y colados (h=3.00)', unit: 'pza', defaultQty: 14, qty: 14, defaultPrice: 1160, price: 1160, min: 0, max: 40, step: 1 },
+            { id: 'pb-5', section: 'pb', name: 'Muros de block', unit: 'm²', defaultQty: 30, qty: 30, defaultPrice: 100, price: 100, min: 0, max: 150, step: 1 },
+            { id: 'pb-6', section: 'pb', name: 'Trabes de losa', unit: 'ml', defaultQty: 85, qty: 85, defaultPrice: 200, price: 200, min: 0, max: 200, step: 1 },
+            { id: 'pb-7', section: 'pb', name: 'Colado de losa', unit: 'm²', defaultQty: 74, qty: 74, defaultPrice: 450, price: 450, min: 0, max: 150, step: 1 },
+            { id: 'pb-8', section: 'pb', name: 'Demolición muro calle', unit: 'lote', defaultQty: 1, qty: 1, defaultPrice: 6000, price: 6000, min: 0, max: 5, step: 0.5 },
+            { id: 'pb-9', section: 'pb', name: 'Escaleras', unit: 'lote', defaultQty: 1, qty: 1, defaultPrice: 18000, price: 18000, min: 0, max: 3, step: 0.5 },
+
+            // PLANTA ALTA
+            { id: 'pa-1', section: 'pa', name: 'Muros de block', unit: 'm²', defaultQty: 72, qty: 72, defaultPrice: 120, price: 120, min: 0, max: 150, step: 1 },
+            { id: 'pa-2', section: 'pa', name: 'Castillos armados y colados', unit: 'pza', defaultQty: 35, qty: 35, defaultPrice: 1300, price: 1300, min: 0, max: 60, step: 1 },
+            { id: 'pa-3', section: 'pa', name: 'Trabe de losa', unit: 'ml', defaultQty: 90, qty: 90, defaultPrice: 220, price: 220, min: 0, max: 200, step: 1 },
+            { id: 'pa-4', section: 'pa', name: 'Colado de losa', unit: 'm²', defaultQty: 74, qty: 74, defaultPrice: 540, price: 540, min: 0, max: 150, step: 1 }
+        ];
+
+        // Obtener o generar el ID de sala en la URL (?sala=...) para compartir en tiempo real
+        function getOrCreateRoomId() {
+            const url = new URL(window.location.href);
+            let sala = url.searchParams.get('sala');
+            if (!sala || !sala.trim()) {
+                sala = 'obra-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+                url.searchParams.set('sala', sala);
+                try {
+                    window.history.replaceState({}, '', url.toString());
+                } catch (e) {}
+            }
+            return sala.trim();
+        }
+
+        const ROOM_ID = getOrCreateRoomId();
+        const STORAGE_KEY = `presupuesto_obra_v1_${ROOM_ID}`;
+        let budgetItems = JSON.parse(JSON.stringify(INITIAL_ITEMS));
+        let payments = [];
+        let db = null;
+        let currentUser = null;
+        let clientSessionId = 'client-' + Math.random().toString(36).substring(2, 10);
+        let syncDebounceTimer = null;
+        let isApplyingRemoteUpdate = false;
+
+        // Cargar estado guardado desde la URL (#data=...) o desde localStorage al iniciar
+        function loadInitialState() {
+            let loadedFromHash = false;
+
+            // 1. Revisar si el enlace compartido trae datos integrados en el hash (#data=...)
+            try {
+                const hash = window.location.hash;
+                if (hash && hash.includes('data=')) {
+                    const params = new URLSearchParams(hash.substring(1));
+                    const encoded = params.get('data');
+                    if (encoded) {
+                        const jsonStr = decodeURIComponent(escape(atob(encoded)));
+                        const parsed = JSON.parse(jsonStr);
+                        if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+                            budgetItems = parsed.items;
+                            loadedFromHash = true;
+                        }
+                        if (parsed && Array.isArray(parsed.payments)) {
+                            payments = parsed.payments;
+                            loadedFromHash = true;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('No se pudieron leer datos del enlace:', e);
+            }
+
+            // 2. Si no venía en la URL (o como respaldo), cargar desde localStorage para esta sala
+            if (!loadedFromHash) {
+                try {
+                    const savedRaw = window.localStorage.getItem(STORAGE_KEY);
+                    if (savedRaw) {
+                        const parsed = JSON.parse(savedRaw);
+                        if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+                            budgetItems = parsed.items;
+                        }
+                        if (parsed && Array.isArray(parsed.payments)) {
+                            payments = parsed.payments;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Error leyendo almacenamiento local:', e);
+                }
+            } else {
+                // Guardar en localStorage lo recibido por enlace compartido
+                persistToLocalStorage();
+            }
+        }
+
+        function persistToLocalStorage() {
+            try {
+                window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    items: budgetItems,
+                    payments: payments,
+                    updatedAt: Date.now()
+                }));
+            } catch (e) {
+                console.warn('No se pudo guardar en localStorage:', e);
+            }
+        }
+
+        // Actualizar indicador visual de sincronización
+        function setSyncStatus(state, text) {
+            const badge = document.getElementById('sync-badge');
+            const dot = document.getElementById('sync-dot');
+            const label = document.getElementById('sync-text');
+            if (!badge || !dot || !label) return;
+
+            label.textContent = text;
+            if (state === 'online') {
+                badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-700/70 transition-colors';
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+            } else if (state === 'saving') {
+                badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-950/80 text-amber-300 border border-amber-700/70 transition-colors';
+                dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+            } else {
+                badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 border border-slate-700 transition-colors';
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+            }
+        }
+
+        // Inicializar conexión en tiempo real con Firebase Firestore (si está configurado)
+        async function initRealtimeSync() {
+            const roomLabel = document.getElementById('room-id-label');
+            if (roomLabel) roomLabel.textContent = `Sala: ${ROOM_ID}`;
+
+            try {
+                if (typeof __firebase_config === 'undefined') {
+                    setSyncStatus('local', 'Guardado automático local');
+                    return;
+                }
+
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const app = initializeApp(firebaseConfig);
+                const auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Autenticar antes de consultar o escuchar Firestore
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    const cred = await signInWithCustomToken(auth, __initial_auth_token);
+                    currentUser = cred.user;
+                } else {
+                    const cred = await signInAnonymously(auth);
+                    currentUser = cred.user;
+                }
+
+                if (!currentUser) return;
+
+                // Ruta pública colaborativa vinculada al ID de sala de la URL
+                const roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'presupuestos_obra', ROOM_ID);
+
+                onSnapshot(
+                    roomDocRef,
+                    (snapshot) => {
+                        setSyncStatus('online', 'Sincronizado en vivo');
+                        if (!snapshot.exists()) {
+                            // Si la sala es nueva, inicializar documento compartido con los valores base
+                            pushStateToCloud(true);
+                            return;
+                        }
+
+                        const data = snapshot.data();
+                        // Ignorar el eco propio si fue generado hace instantes por esta misma pestaña
+                        if (data && data.updatedBy === clientSessionId) {
+                            return;
+                        }
+
+                        isApplyingRemoteUpdate = true;
+                        try {
+                            if (Array.isArray(data.items) && data.items.length > 0) {
+                                budgetItems = data.items;
+                                renderItems();
+                            }
+                            if (Array.isArray(data.payments)) {
+                                payments = data.payments;
+                                renderPayments();
+                            }
+                            persistToLocalStorage();
+                        } finally {
+                            isApplyingRemoteUpdate = false;
+                        }
+                    },
+                    (error) => {
+                        console.error('Error en sincronización en vivo:', error);
+                        setSyncStatus('local', 'Guardado local activo');
+                    }
+                );
+            } catch (err) {
+                console.error('Error iniciando sincronización:', err);
+                setSyncStatus('local', 'Guardado local activo');
+            }
+        }
+
+        // Guardar estado en Firestore con debounce para no saturar al deslizar
+        function scheduleCloudSync(immediate = false) {
+            if (isApplyingRemoteUpdate) return;
+
+            // Siempre guardar en almacenamiento local al instante para no perder nada al refrescar
+            persistToLocalStorage();
+
+            // Si estamos en entorno publicado sin nube, mantener el hash actualizado si ya existía
+            if (window.location.hash && window.location.hash.includes('data=')) {
+                try {
+                    window.history.replaceState({}, '', `${window.location.pathname}?sala=${encodeURIComponent(ROOM_ID)}`);
+                } catch (e) {}
+            }
+
+            if (!db || !currentUser) {
+                setSyncStatus('local', 'Cambios guardados');
+                return;
+            }
+
+            setSyncStatus('saving', 'Sincronizando...');
+            clearTimeout(syncDebounceTimer);
+
+            if (immediate) {
+                pushStateToCloud(false);
+            } else {
+                syncDebounceTimer = setTimeout(() => {
+                    pushStateToCloud(false);
+                }, 250);
+            }
+        }
+
+        async function pushStateToCloud(isInitialSeed = false) {
+            if (!db || !currentUser) return;
+            try {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'presupuestos_obra', ROOM_ID);
+                await setDoc(roomDocRef, {
+                    items: budgetItems,
+                    payments: payments,
+                    updatedAt: Date.now(),
+                    updatedBy: isInitialSeed ? 'seed' : clientSessionId
+                });
+                setSyncStatus('online', 'Sincronizado en vivo');
+            } catch (e) {
+                console.error('Error al guardar cambios en la nube:', e);
+                setSyncStatus('offline', 'Error al sincronizar');
+            }
+        }
+
+        function saveState(immediate = false) {
+            scheduleCloudSync(immediate);
+        }
+
+        // Copiar enlace completo con todos los cambios y pagos incluidos para compartir
+        function shareLiveLink() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('sala', ROOM_ID);
+
+            try {
+                const payload = JSON.stringify({
+                    items: budgetItems,
+                    payments: payments
+                });
+                const encoded = btoa(unescape(encodeURIComponent(payload)));
+                url.hash = `data=${encoded}`;
+            } catch (e) {
+                console.warn('No se pudo codificar estado en URL:', e);
+            }
+
+            const shareUrl = url.toString();
+            const textArea = document.createElement('textarea');
+            textArea.value = shareUrl;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                showToast('Enlace actualizado copiado con tus cambios y pagos');
+            } catch (err) {
+                showToast('No se pudo copiar el enlace');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        const currencyFormatter = new Intl.NumberFormat('es-MX', {
+            style: 'currency',
+            currency: 'MXN',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+        function formatMoney(amount) {
+            return currencyFormatter.format(amount || 0);
+        }
+
+        const ORIGINAL_TOTAL = INITIAL_ITEMS.reduce((sum, item) => sum + (item.defaultQty * item.defaultPrice), 0);
+
+        /**
+         * Renderiza todas las tarjetas de conceptos de Planta Baja y Planta Alta
+         * conservando deslizadores, cuadros numéricos y precios unitarios editables.
+         */
+        function renderItems() {
+            const listPb = document.getElementById('list-pb');
+            const listPa = document.getElementById('list-pa');
+            
+            listPb.innerHTML = '';
+            listPa.innerHTML = '';
+
+            budgetItems.forEach((item) => {
+                const subtotal = item.qty * item.price;
+                const isModified = item.qty !== item.defaultQty || item.price !== item.defaultPrice;
+                const effectiveMax = Math.max(item.max, item.qty);
+                
+                const card = document.createElement('div');
+                card.id = `card-${item.id}`;
+                card.className = `card-shadow bg-white rounded-2xl p-4 sm:p-5 border transition-all duration-200 ${
+                    item.qty === 0 
+                        ? 'border-slate-200 opacity-65 bg-slate-50/70' 
+                        : isModified 
+                            ? 'border-amber-300 shadow-sm ring-1 ring-amber-500/20' 
+                            : 'border-slate-200/90 shadow-sm hover:border-slate-300'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        
+                        <!-- Columna 1: Nombre editable y Costo Unitario editable -->
+                        <div class="lg:w-5/12 space-y-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <input 
+                                    type="text"
+                                    value="${escapeHtml(item.name)}"
+                                    onchange="updateName('${item.id}', this.value)"
+                                    class="w-full font-bold text-slate-900 text-base leading-snug bg-transparent border-b border-transparent hover:border-slate-300 focus:border-amber-500 focus:outline-none py-0.5 transition-colors"
+                                    aria-label="Nombre del concepto"
+                                >
+                                ${item.isCustom ? `
+                                    <button onclick="removeItem('${item.id}')" class="no-print shrink-0 text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer" title="Eliminar partida">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                ` : ''}
+                            </div>
+                            
+                            <!-- Control de Costo Unitario ($ MXN) -->
+                            <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                <span>Costo unitario:</span>
+                                <div class="inline-flex items-center bg-slate-100 rounded-xl border border-slate-200 px-2.5 py-1 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:bg-white transition-all">
+                                    <span class="text-slate-500 font-bold mr-1">$</span>
+                                    <input 
+                                        type="number" 
+                                        min="0" 
+                                        step="any"
+                                        value="${item.price}"
+                                        oninput="updatePrice('${item.id}', this.value)"
+                                        class="w-24 bg-transparent font-bold text-slate-800 focus:outline-none tabular-nums"
+                                        aria-label="Costo unitario de ${escapeHtml(item.name)}"
+                                    >
+                                    <span class="text-slate-400 ml-1 font-medium">/ ${escapeHtml(item.unit)}</span>
+                                </div>
+                                ${item.defaultQty > 0 ? `<span class="text-[11px] text-slate-400">(Base: ${item.defaultQty} ${escapeHtml(item.unit)})</span>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Columna 2: Control Deslizante (Slider) y Cuadro Numérico Sincronizado -->
+                        <div class="lg:w-4/12 flex flex-col justify-center space-y-1.5 no-print">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex-1">
+                                    <input 
+                                        type="range" 
+                                        id="slider-${item.id}"
+                                        min="${item.min}" 
+                                        max="${effectiveMax}" 
+                                        step="${item.step}" 
+                                        value="${item.qty}"
+                                        oninput="updateQty('${item.id}', this.value, 'slider')"
+                                        class="w-full"
+                                        aria-label="Deslizador de cantidad para ${escapeHtml(item.name)}"
+                                    >
+                                    <div class="flex justify-between text-[10px] text-slate-400 font-medium px-0.5 mt-0.5">
+                                        <span>${item.min}</span>
+                                        <span>${Math.round(effectiveMax / 2)}</span>
+                                        <span>${effectiveMax} ${escapeHtml(item.unit)}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Input numérico sincronizado con el slider -->
+                                <div class="flex items-center bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:bg-white transition-all">
+                                    <input 
+                                        type="number" 
+                                        id="input-${item.id}"
+                                        min="0" 
+                                        step="any"
+                                        value="${item.qty}"
+                                        oninput="updateQty('${item.id}', this.value, 'input')"
+                                        class="w-16 text-right font-extrabold text-slate-900 bg-transparent focus:outline-none text-sm tabular-nums"
+                                        aria-label="Cantidad numérica para ${escapeHtml(item.name)}"
+                                    >
+                                    <span class="text-xs font-semibold text-slate-500 ml-1.5 select-none">${escapeHtml(item.unit)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Vista de cantidad solo para impresión -->
+                        <div class="hidden print:block text-sm text-slate-700 font-medium">
+                            Cantidad: <strong>${item.qty} ${escapeHtml(item.unit)}</strong> × ${formatMoney(item.price)}
+                        </div>
+
+                        <!-- Columna 3: Importe Subtotal del Concepto -->
+                        <div class="lg:w-3/12 flex items-center justify-between lg:justify-end border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-100">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 lg:hidden">Subtotal Partida:</span>
+                            <div class="text-right">
+                                <div id="total-${item.id}" class="text-lg sm:text-xl font-extrabold text-slate-900 tabular-nums">
+                                    ${formatMoney(subtotal)}
+                                </div>
+                                <div id="formula-${item.id}" class="text-[11px] text-slate-400 tabular-nums">
+                                    ${item.qty} ${escapeHtml(item.unit)} × ${formatMoney(item.price)}
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                `;
+
+                if (item.section === 'pb') {
+                    listPb.appendChild(card);
+                } else {
+                    listPa.appendChild(card);
+                }
+            });
+
+            saveState();
+            calculateTotals();
+        }
+
+        /**
+         * Actualiza la cantidad cuando se mueve el slider o se escribe en el input numérico
+         */
+        function updateQty(id, rawValue, source) {
+            const val = parseFloat(rawValue);
+            const qty = isNaN(val) || val < 0 ? 0 : val;
+            const item = budgetItems.find(i => i.id === id);
+            if (!item) return;
+
+            item.qty = qty;
+
+            const sliderEl = document.getElementById(`slider-${id}`);
+            const inputEl = document.getElementById(`input-${id}`);
+
+            if (source === 'slider' && inputEl) {
+                inputEl.value = qty;
+            } else if (source === 'input' && sliderEl) {
+                if (qty > parseFloat(sliderEl.max)) {
+                    sliderEl.max = qty;
+                }
+                sliderEl.value = qty;
+            }
+
+            updateCardVisuals(item);
+            saveState();
+            calculateTotals();
+        }
+
+        /**
+         * Actualiza el costo unitario ($ MXN) de una partida en tiempo real
+         */
+        function updatePrice(id, rawValue) {
+            const val = parseFloat(rawValue);
+            const price = isNaN(val) || val < 0 ? 0 : val;
+            const item = budgetItems.find(i => i.id === id);
+            if (!item) return;
+
+            item.price = price;
+            updateCardVisuals(item);
+            saveState();
+            calculateTotals();
+        }
+
+        /**
+         * Actualiza el nombre del concepto si el usuario lo edita
+         */
+        function updateName(id, newName) {
+            const item = budgetItems.find(i => i.id === id);
+            if (!item) return;
+            const trimmed = newName.trim();
+            if (trimmed) {
+                item.name = trimmed;
+                saveState();
+            }
+        }
+
+        /**
+         * Actualiza el importe y estilo de una tarjeta individual sin perder el foco del input
+         */
+        function updateCardVisuals(item) {
+            const totalEl = document.getElementById(`total-${item.id}`);
+            const formulaEl = document.getElementById(`formula-${item.id}`);
+            const cardEl = document.getElementById(`card-${item.id}`);
+
+            if (totalEl) {
+                totalEl.textContent = formatMoney(item.qty * item.price);
+            }
+            if (formulaEl) {
+                formulaEl.textContent = `${item.qty} ${item.unit} × ${formatMoney(item.price)}`;
+            }
+            if (cardEl) {
+                const isModified = item.qty !== item.defaultQty || item.price !== item.defaultPrice;
+                cardEl.className = `card-shadow bg-white rounded-2xl p-4 sm:p-5 border transition-all duration-200 ${
+                    item.qty === 0 
+                        ? 'border-slate-200 opacity-65 bg-slate-50/70' 
+                        : isModified 
+                            ? 'border-amber-300 shadow-sm ring-1 ring-amber-500/20' 
+                            : 'border-slate-200/90 shadow-sm hover:border-slate-300'
+                }`;
+            }
+        }
+
+        /**
+         * Renderiza la tabla interactiva de pagos y abonos registrados
+         */
+        function renderPayments() {
+            const emptyState = document.getElementById('payments-empty');
+            const tableWrapper = document.getElementById('payments-table-wrapper');
+            const tbody = document.getElementById('payments-list');
+            const clearBtn = document.getElementById('btn-clear-payments');
+
+            tbody.innerHTML = '';
+
+            if (payments.length === 0) {
+                emptyState.classList.remove('hidden');
+                tableWrapper.classList.add('hidden');
+                clearBtn.classList.add('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                tableWrapper.classList.remove('hidden');
+                clearBtn.classList.remove('hidden');
+
+                payments.forEach((pay, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50/90 transition-colors';
+                    tr.innerHTML = `
+                        <td class="py-3 px-4 font-bold text-slate-400 text-xs">${index + 1}</td>
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            <input 
+                                type="date" 
+                                value="${pay.date || ''}" 
+                                onchange="updatePaymentField('${pay.id}', 'date', this.value)"
+                                class="text-xs sm:text-sm text-slate-700 bg-transparent border border-transparent hover:border-slate-300 focus:border-emerald-500 focus:bg-white rounded-lg px-2 py-1 focus:outline-none"
+                                aria-label="Editar fecha del pago"
+                            >
+                        </td>
+                        <td class="py-3 px-4">
+                            <input 
+                                type="text" 
+                                value="${escapeHtml(pay.description)}" 
+                                onchange="updatePaymentField('${pay.id}', 'description', this.value)"
+                                class="w-full min-w-[160px] font-semibold text-slate-900 bg-transparent border border-transparent hover:border-slate-300 focus:border-emerald-500 focus:bg-white rounded-lg px-2 py-1 focus:outline-none"
+                                aria-label="Editar descripción del pago"
+                            >
+                        </td>
+                        <td class="py-3 px-4">
+                            <input 
+                                type="text" 
+                                value="${escapeHtml(pay.note || '')}" 
+                                placeholder="—"
+                                onchange="updatePaymentField('${pay.id}', 'note', this.value)"
+                                class="w-full min-w-[120px] text-xs sm:text-sm text-slate-600 bg-transparent border border-transparent hover:border-slate-300 focus:border-emerald-500 focus:bg-white rounded-lg px-2 py-1 focus:outline-none"
+                                aria-label="Editar método o nota del pago"
+                            >
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <div class="inline-flex items-center justify-end bg-emerald-50/70 border border-emerald-200 rounded-xl px-2.5 py-1 focus-within:ring-2 focus-within:ring-emerald-500 focus-within:bg-white">
+                                <span class="text-emerald-700 font-bold text-xs mr-1">$</span>
+                                <input 
+                                    type="number" 
+                                    min="0" 
+                                    step="any" 
+                                    value="${pay.amount}" 
+                                    oninput="updatePaymentAmount('${pay.id}', this.value)"
+                                    class="w-24 text-right font-extrabold text-emerald-700 bg-transparent focus:outline-none text-sm tabular-nums"
+                                    aria-label="Editar monto del pago ${escapeHtml(pay.description)}"
+                                >
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-center no-print">
+                            <button onclick="removePayment('${pay.id}')" class="text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition-colors cursor-pointer" title="Eliminar abono">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            saveState();
+            calculateTotals();
+        }
+
+        function formatDisplayDate(dateStr) {
+            if (!dateStr) return '—';
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML.replace(/"/g, '&quot;');
+        }
+
+        function handleAddPayment(e) {
+            e.preventDefault();
+            const descInput = document.getElementById('pay-desc');
+            const dateInput = document.getElementById('pay-date');
+            const noteInput = document.getElementById('pay-note');
+            const amountInput = document.getElementById('pay-amount');
+
+            const description = descInput.value.trim();
+            const date = dateInput.value;
+            const note = noteInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+
+            if (!description || isNaN(amount) || amount <= 0) return;
+
+            payments.push({
+                id: 'pay-' + Date.now(),
+                description,
+                date,
+                note,
+                amount
+            });
+
+            descInput.value = '';
+            noteInput.value = '';
+            amountInput.value = '';
+            renderPayments();
+            saveState(true);
+            showToast(`Abono de ${formatMoney(amount)} registrado`);
+        }
+
+        function updatePaymentField(id, field, value) {
+            const pay = payments.find(p => p.id === id);
+            if (!pay) return;
+            pay[field] = value.trim();
+            saveState(true);
+        }
+
+        function updatePaymentAmount(id, rawValue) {
+            const val = parseFloat(rawValue);
+            const amount = isNaN(val) || val < 0 ? 0 : val;
+            const pay = payments.find(p => p.id === id);
+            if (!pay) return;
+            pay.amount = amount;
+            saveState(false);
+            calculateTotals();
+        }
+
+        function removePayment(id) {
+            payments = payments.filter(p => p.id !== id);
+            renderPayments();
+            saveState(true);
+            showToast('Abono eliminado del historial');
+        }
+
+        function clearAllPayments() {
+            payments = [];
+            renderPayments();
+            saveState(true);
+            showToast('Historial de pagos limpiado');
+        }
+
+        function setDefaultPaymentDate() {
+            const dateEl = document.getElementById('pay-date');
+            if (dateEl) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                dateEl.value = `${yyyy}-${mm}-${dd}`;
+            }
+        }
+
+        /**
+         * Calcula y actualiza los subtotales, Gran Total Cotizado, Total Abonado y Saldo Pendiente
+         */
+        function calculateTotals() {
+            let sumPb = 0;
+            let sumPa = 0;
+
+            budgetItems.forEach(item => {
+                const sub = item.qty * item.price;
+                if (item.section === 'pb') {
+                    sumPb += sub;
+                } else {
+                    sumPa += sub;
+                }
+            });
+
+            const grandTotal = sumPb + sumPa;
+            const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+            const balanceDue = grandTotal - totalPaid;
+            const diff = grandTotal - ORIGINAL_TOTAL;
+
+            // Actualizar encabezados de sección
+            const subPbEl = document.getElementById('subtotal-pb');
+            const subPaEl = document.getElementById('subtotal-pa');
+            const subPaidEl = document.getElementById('subtotal-paid');
+            if (subPbEl) subPbEl.textContent = formatMoney(sumPb);
+            if (subPaEl) subPaEl.textContent = formatMoney(sumPa);
+            if (subPaidEl) subPaidEl.textContent = formatMoney(totalPaid);
+
+            // Actualizar barra de progreso de liquidación
+            const pctPaid = grandTotal > 0 ? Math.min(100, (totalPaid / grandTotal) * 100) : 0;
+            const pctRem = Math.max(0, 100 - pctPaid);
+            const pctEl = document.getElementById('payment-percent');
+            const remPctEl = document.getElementById('payment-remaining-percent');
+            const barEl = document.getElementById('payment-progress-bar');
+            if (pctEl) pctEl.textContent = `${pctPaid.toFixed(1)}%`;
+            if (remPctEl) remPctEl.textContent = `${pctRem.toFixed(1)}%`;
+            if (barEl) barEl.style.width = `${pctPaid}%`;
+
+            // Actualizar tarjetas de la barra fija inferior
+            const footerPbEl = document.getElementById('footer-pb');
+            const footerPaEl = document.getElementById('footer-pa');
+            const grandTotalEl = document.getElementById('grand-total');
+            const footerPaidEl = document.getElementById('footer-paid');
+            if (footerPbEl) footerPbEl.textContent = formatMoney(sumPb);
+            if (footerPaEl) footerPaEl.textContent = formatMoney(sumPa);
+            if (grandTotalEl) grandTotalEl.textContent = formatMoney(grandTotal);
+            if (footerPaidEl) footerPaidEl.textContent = `-${formatMoney(totalPaid)}`;
+
+            // Actualizar tarjeta destacada de Saldo Pendiente por Pagar
+            const balanceBox = document.getElementById('balance-box');
+            const balanceLabel = document.getElementById('balance-label');
+            const balanceDueEl = document.getElementById('balance-due');
+
+            if (balanceBox && balanceLabel && balanceDueEl) {
+                if (balanceDue > 0.009) {
+                    balanceBox.className = 'col-span-2 sm:col-span-2 lg:col-span-1 flex items-center justify-between lg:flex-col lg:items-end lg:justify-center bg-amber-500/15 px-3.5 py-2 rounded-xl border border-amber-500/40 transition-colors';
+                    balanceLabel.className = 'text-amber-400 text-[10px] font-bold uppercase tracking-wider block';
+                    balanceLabel.textContent = 'Saldo Pendiente';
+                    balanceDueEl.className = 'text-lg sm:text-xl font-black text-amber-400 tracking-tight tabular-nums';
+                    balanceDueEl.textContent = formatMoney(balanceDue);
+                } else if (Math.abs(balanceDue) <= 0.009) {
+                    balanceBox.className = 'col-span-2 sm:col-span-2 lg:col-span-1 flex items-center justify-between lg:flex-col lg:items-end lg:justify-center bg-emerald-500/20 px-3.5 py-2 rounded-xl border border-emerald-500/50 transition-colors';
+                    balanceLabel.className = 'text-emerald-400 text-[10px] font-bold uppercase tracking-wider block';
+                    balanceLabel.textContent = 'Liquidado ($0.00)';
+                    balanceDueEl.className = 'text-lg sm:text-xl font-black text-emerald-400 tracking-tight tabular-nums';
+                    balanceDueEl.textContent = '$0.00';
+                } else {
+                    balanceBox.className = 'col-span-2 sm:col-span-2 lg:col-span-1 flex items-center justify-between lg:flex-col lg:items-end lg:justify-center bg-sky-500/20 px-3.5 py-2 rounded-xl border border-sky-500/50 transition-colors';
+                    balanceLabel.className = 'text-sky-300 text-[10px] font-bold uppercase tracking-wider block';
+                    balanceLabel.textContent = 'Saldo a Favor';
+                    balanceDueEl.className = 'text-lg sm:text-xl font-black text-sky-400 tracking-tight tabular-nums';
+                    balanceDueEl.textContent = formatMoney(Math.abs(balanceDue));
+                }
+            }
+
+            // Actualizar indicador de variación respecto al presupuesto original
+            const diffEl = document.getElementById('footer-diff');
+            if (diffEl) {
+                if (Math.abs(diff) < 0.01) {
+                    diffEl.textContent = 'Base';
+                    diffEl.className = 'text-[10px] text-slate-400 hidden xl:inline';
+                } else if (diff > 0) {
+                    diffEl.textContent = `+${formatMoney(diff)}`;
+                    diffEl.className = 'text-[10px] text-amber-400 font-semibold hidden xl:inline';
+                } else {
+                    diffEl.textContent = `${formatMoney(diff)}`;
+                    diffEl.className = 'text-[10px] text-emerald-400 font-semibold hidden xl:inline';
+                }
+            }
+        }
+
+        // Control del Modal de Restablecimiento
+        function openResetModal() {
+            const modal = document.getElementById('reset-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeResetModal() {
+            const modal = document.getElementById('reset-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function executeReset(clearPaymentsToo) {
+            budgetItems = JSON.parse(JSON.stringify(INITIAL_ITEMS));
+            renderItems();
+            if (clearPaymentsToo) {
+                payments = [];
+                renderPayments();
+                saveState(true);
+                showToast('Notas y pagos restablecidos desde cero');
+            } else {
+                saveState(true);
+                showToast('Notas originales restauradas (pagos conservados)');
+            }
+            closeResetModal();
+        }
+
+        // Control del Modal para Agregar Concepto
+        function openAddModal() {
+            const modal = document.getElementById('add-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.getElementById('new-name').focus();
+        }
+
+        function closeAddModal() {
+            const modal = document.getElementById('add-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('add-form').reset();
+        }
+
+        function handleAddConcept(e) {
+            e.preventDefault();
+            const section = document.getElementById('new-section').value;
+            const name = document.getElementById('new-name').value.trim();
+            const unit = document.getElementById('new-unit').value.trim();
+            const price = parseFloat(document.getElementById('new-price').value) || 0;
+            const qty = parseFloat(document.getElementById('new-qty').value) || 0;
+            const max = parseFloat(document.getElementById('new-max').value) || Math.max(100, qty * 2);
+
+            const newItem = {
+                id: 'custom-' + Date.now(),
+                section,
+                name,
+                unit,
+                defaultQty: qty,
+                qty,
+                defaultPrice: price,
+                price,
+                min: 0,
+                max: Math.max(max, qty),
+                step: 1,
+                isCustom: true
+            };
+
+            budgetItems.push(newItem);
+            closeAddModal();
+            renderItems();
+            saveState(true);
+            showToast(`Concepto "${name}" agregado`);
+        }
+
+        function removeItem(id) {
+            budgetItems = budgetItems.filter(item => item.id !== id);
+            renderItems();
+            saveState(true);
+            showToast('Concepto eliminado');
+        }
+
+        /**
+         * Copia el desglose completo al portapapeles listo para WhatsApp
+         */
+        function copyBudgetSummary() {
+            let sumPb = 0;
+            let sumPa = 0;
+            let lines = [
+                '*PRESUPUESTO DE OBRA*',
+                '----------------------------------------',
+                '',
+                '*1. PLANTA BAJA:*'
+            ];
+
+            budgetItems.filter(i => i.section === 'pb').forEach(i => {
+                const sub = i.qty * i.price;
+                sumPb += sub;
+                lines.push(`• ${i.name}: ${i.qty} ${i.unit} × ${formatMoney(i.price)} = *${formatMoney(sub)}*`);
+            });
+            lines.push(`_Subtotal Planta Baja: ${formatMoney(sumPb)}_`, '', '*2. PLANTA ALTA:*');
+
+            budgetItems.filter(i => i.section === 'pa').forEach(i => {
+                const sub = i.qty * i.price;
+                sumPa += sub;
+                lines.push(`• ${i.name}: ${i.qty} ${i.unit} × ${formatMoney(i.price)} = *${formatMoney(sub)}*`);
+            });
+            lines.push(`_Subtotal Planta Alta: ${formatMoney(sumPa)}_`);
+
+            const grandTotal = sumPb + sumPa;
+            const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+            const balanceDue = grandTotal - totalPaid;
+
+            lines.push('', '*3. PAGOS Y ABONOS REGISTRADOS:*');
+            if (payments.length === 0) {
+                lines.push('• Sin pagos registrados');
+            } else {
+                payments.forEach((p, idx) => {
+                    const noteText = p.note ? ` (${p.note})` : '';
+                    lines.push(`${idx + 1}. [${formatDisplayDate(p.date)}] ${p.description}${noteText}: -${formatMoney(p.amount)}`);
+                });
+            }
+
+            lines.push(
+                '',
+                '----------------------------------------',
+                `*GRAN TOTAL COTIZADO:* ${formatMoney(grandTotal)}`,
+                `*TOTAL ABONADO:* -${formatMoney(totalPaid)}`,
+                `*SALDO PENDIENTE POR PAGAR:* ${formatMoney(balanceDue)}`
+            );
+
+            const textArea = document.createElement('textarea');
+            textArea.value = lines.join('\n');
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast('Resumen listo para WhatsApp copiado');
+            } catch (err) {
+                showToast('No se pudo copiar el texto');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        let toastTimeout;
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            toastMsg.textContent = msg;
+            
+            toast.classList.remove('translate-y-[-150%]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-150%]', 'opacity-0');
+            }, 3000);
+        }
+
+        // Exponer funciones al ámbito global para los manejadores inline
+        window.updateQty = updateQty;
+        window.updatePrice = updatePrice;
+        window.updateName = updateName;
+        window.removeItem = removeItem;
+        window.handleAddPayment = handleAddPayment;
+        window.updatePaymentField = updatePaymentField;
+        window.updatePaymentAmount = updatePaymentAmount;
+        window.removePayment = removePayment;
+        window.clearAllPayments = clearAllPayments;
+        window.openResetModal = openResetModal;
+        window.closeResetModal = closeResetModal;
+        window.executeReset = executeReset;
+        window.openAddModal = openAddModal;
+        window.closeAddModal = closeAddModal;
+        window.handleAddConcept = handleAddConcept;
+        window.copyBudgetSummary = copyBudgetSummary;
+        window.shareLiveLink = shareLiveLink;
+
+        // Inicializar aplicación al cargar
+        window.addEventListener('DOMContentLoaded', () => {
+            loadInitialState();
+            setDefaultPaymentDate();
+            renderItems();
+            renderPayments();
+            initRealtimeSync();
+        });
+    </script>
+</body>
+</html>
